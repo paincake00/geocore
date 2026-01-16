@@ -2,6 +2,7 @@ package entity
 
 import "time"
 
+// Incident представляет собой опасную зону (событие), создаваемую оператором.
 type Incident struct {
 	ID           int       `json:"id"`
 	Title        string    `json:"title"`
@@ -12,6 +13,7 @@ type Incident struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+// LocationCheck представляет собой факт проверки местоположения пользователем.
 type LocationCheck struct {
 	ID        int       `json:"id"`
 	UserID    string    `json:"user_id"`
@@ -20,6 +22,7 @@ type LocationCheck struct {
 	CheckedAt time.Time `json:"checked_at"`
 }
 
+// WebhookEvent структура для отправки в очередь Redis и последующей обработки воркером.
 type WebhookEvent struct {
 	Event                string  `json:"event"`
 	UserID               string  `json:"user_id"`

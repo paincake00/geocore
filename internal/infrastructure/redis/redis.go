@@ -10,13 +10,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// RedisRepo реализация репозитория на основе Redis (для очереди и кеша).
 type RedisRepo struct {
 	Client *redis.Client
 }
 
+// New создает новое подключение к Redis.
 func New(addr string) (*RedisRepo, error) {
-	// In a real app we might want password/db options too.
-	// For now assuming simple host:port string
+	// В реальном приложении стоило бы добавить настройки пароля и номера БД.
 	client := redis.NewClient(&redis.Options{
 		Addr: addr,
 	})
@@ -28,16 +29,19 @@ func New(addr string) (*RedisRepo, error) {
 	return &RedisRepo{Client: client}, nil
 }
 
+// Close закрывает соединение.
 func (r *RedisRepo) Close() {
 	r.Client.Close()
 }
 
+// Ping проверяет доступность Redis.
 func (r *RedisRepo) Ping(ctx context.Context) error {
 	return r.Client.Ping(ctx).Err()
 }
 
-// Queue
+// Queue (Очередь)
 
+// Enqueue добавляет задачу в очередь списка (LPush).
 func (r *RedisRepo) Enqueue(ctx context.Context, queueName string, payload interface{}) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -46,39 +50,39 @@ func (r *RedisRepo) Enqueue(ctx context.Context, queueName string, payload inter
 	return r.Client.LPush(ctx, queueName, data).Err()
 }
 
+// Dequeue извлекает задачу из очереди (BRPop - блокирующее чтение).
 func (r *RedisRepo) Dequeue(ctx context.Context, queueName string) (string, error) {
-	// BRPOP blocks until an item is available. timeout 0 means block indefinitely.
+	// BRPop блокирует выполнение, пока не появится элемент. 0 - бесконечное ожидание.
 	result, err := r.Client.BRPop(ctx, 0, queueName).Result()
 	if err != nil {
 		return "", err
 	}
-	// result is [queue, value]
+	// result содержит [имя_очереди, значение]
 	if len(result) < 2 {
 		return "", fmt.Errorf("redis pop unexpected result")
 	}
 	return result[1], nil
 }
 
-// Cache
+// Cache (Кеш)
 
 const IncidentsCacheKey = "active_incidents"
 
+// SetIncidents сохраняет список инцидентов в кеш с TTL.
 func (r *RedisRepo) SetIncidents(ctx context.Context, incidents []*entity.Incident) error {
 	data, err := json.Marshal(incidents)
 	if err != nil {
 		return err
 	}
-	// TTL can be 1 minute or less, or we can rely on manual invalidation.
-	// Given "Service synchronously returns", we probably want fast read.
-	// Let's set 60s TTL for safety, or indefinite if we handle updates.
-	// For simplicity, 1 minute TTL seems fine for verification.
+	// TTL настроен на 60 секунд.
 	return r.Client.Set(ctx, IncidentsCacheKey, data, 60*time.Second).Err()
 }
 
+// GetIncidents получает список инцидентов из кеша.
 func (r *RedisRepo) GetIncidents(ctx context.Context) ([]*entity.Incident, error) {
 	val, err := r.Client.Get(ctx, IncidentsCacheKey).Result()
 	if err == redis.Nil {
-		return nil, nil // cache miss
+		return nil, nil // кеш пуст
 	}
 	if err != nil {
 		return nil, err

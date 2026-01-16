@@ -10,10 +10,12 @@ import (
 	"github.com/paincake00/geocore/internal/entity"
 )
 
+// PostgresRepo реализация репозитория на основе PostgreSQL.
 type PostgresRepo struct {
 	Pool *pgxpool.Pool
 }
 
+// New создает новое подключение к PostgreSQL.
 func New(dsn string) (*PostgresRepo, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -35,22 +37,26 @@ func New(dsn string) (*PostgresRepo, error) {
 	return &PostgresRepo{Pool: pool}, nil
 }
 
+// Close закрывает пул соединений.
 func (r *PostgresRepo) Close() {
 	r.Pool.Close()
 }
 
+// Ping проверяет соединение с БД.
 func (r *PostgresRepo) Ping(ctx context.Context) error {
 	return r.Pool.Ping(ctx)
 }
 
 // Incident Repository
 
+// Create сохраняет новый инцидент в БД.
 func (r *PostgresRepo) Create(ctx context.Context, i *entity.Incident) error {
 	sql := `INSERT INTO incidents (title, description, latitude, longitude, radius_meters, created_at)
 			VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, created_at`
 	return r.Pool.QueryRow(ctx, sql, i.Title, i.Description, i.Latitude, i.Longitude, i.RadiusMeters).Scan(&i.ID, &i.CreatedAt)
 }
 
+// GetByID получает инцидент по ID.
 func (r *PostgresRepo) GetByID(ctx context.Context, id int) (*entity.Incident, error) {
 	sql := `SELECT id, title, description, latitude, longitude, radius_meters, created_at FROM incidents WHERE id = $1`
 	var i entity.Incident
@@ -61,6 +67,7 @@ func (r *PostgresRepo) GetByID(ctx context.Context, id int) (*entity.Incident, e
 	return &i, nil
 }
 
+// GetAll получает список инцидентов с пагинацией.
 func (r *PostgresRepo) GetAll(ctx context.Context, limit, offset int) ([]*entity.Incident, error) {
 	sql := `SELECT id, title, description, latitude, longitude, radius_meters, created_at FROM incidents ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 	rows, err := r.Pool.Query(ctx, sql, limit, offset)
@@ -80,11 +87,10 @@ func (r *PostgresRepo) GetAll(ctx context.Context, limit, offset int) ([]*entity
 	return incidents, nil
 }
 
-// GetAllActive returns all incidents. In a real system you might filter by "active" status or expiry.
-// For this task, "active" is simply all incidents in the table implies "current" danger zones.
+// GetAllActive возвращает все инциденты.
+// В реальной системе стоит фильтровать по статусу "active" или времени истечения.
+// В рамках задачи считаем все записи в таблице активными.
 func (r *PostgresRepo) GetAllActive(ctx context.Context) ([]*entity.Incident, error) {
-	// Assuming max safe limit or simply fetching all for syncing cache.
-	// If table is huge, this is bad, but for "Nerve" core logic it implies fetching zones to check.
 	sql := `SELECT id, title, description, latitude, longitude, radius_meters, created_at FROM incidents`
 	rows, err := r.Pool.Query(ctx, sql)
 	if err != nil {
@@ -103,6 +109,7 @@ func (r *PostgresRepo) GetAllActive(ctx context.Context) ([]*entity.Incident, er
 	return incidents, nil
 }
 
+// Update обновляет данные инцидента.
 func (r *PostgresRepo) Update(ctx context.Context, i *entity.Incident) error {
 	sql := `UPDATE incidents SET title=$1, description=$2, latitude=$3, longitude=$4, radius_meters=$5 WHERE id=$6`
 	ct, err := r.Pool.Exec(ctx, sql, i.Title, i.Description, i.Latitude, i.Longitude, i.RadiusMeters, i.ID)
@@ -115,6 +122,7 @@ func (r *PostgresRepo) Update(ctx context.Context, i *entity.Incident) error {
 	return nil
 }
 
+// Delete удаляет инцидент.
 func (r *PostgresRepo) Delete(ctx context.Context, id int) error {
 	sql := `DELETE FROM incidents WHERE id=$1`
 	ct, err := r.Pool.Exec(ctx, sql, id)
@@ -127,12 +135,11 @@ func (r *PostgresRepo) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
+// GetStats возвращает статистику: уникальные пользователи на инцидент за период.
 func (r *PostgresRepo) GetStats(ctx context.Context, windowMinutes int) (map[int]int, error) {
-	// Return for each zone quantity of unique users for the last N minutes
+	// Возвращаем количество уникальных пользователей на каждый инцидент за последние N минут
 	startTime := time.Now().Add(-time.Duration(windowMinutes) * time.Minute)
 
-	// Join location_check_incidents with location_checks to filter by time
-	// distinct user_id per incident
 	sql := `
     SELECT lci.incident_id, COUNT(DISTINCT lc.user_id)
     FROM location_check_incidents lci
@@ -160,19 +167,21 @@ func (r *PostgresRepo) GetStats(ctx context.Context, windowMinutes int) (map[int
 
 // LocationCheck Repository
 
+// CreateCheck создает запись о проверке местоположения.
 func (r *PostgresRepo) CreateCheck(ctx context.Context, check *entity.LocationCheck) error {
 	sql := `INSERT INTO location_checks (user_id, latitude, longitude, checked_at)
             VALUES ($1, $2, $3, NOW()) RETURNING id, checked_at`
 	return r.Pool.QueryRow(ctx, sql, check.UserID, check.Latitude, check.Longitude).Scan(&check.ID, &check.CheckedAt)
 }
 
+// RecordIncidentMatch фиксирует факт попадания проверки в инцидент.
 func (r *PostgresRepo) RecordIncidentMatch(ctx context.Context, checkID, incidentID int) error {
 	sql := `INSERT INTO location_check_incidents (location_check_id, incident_id) VALUES ($1, $2)`
 	_, err := r.Pool.Exec(ctx, sql, checkID, incidentID)
 	return err
 }
 
-// Adapter methods to satisfy interfaces if signatures differ slightly (they match here)
+// CreateLocationCheck адаптер для интерфейса.
 func (r *PostgresRepo) CreateLocationCheck(ctx context.Context, check *entity.LocationCheck) error {
 	return r.CreateCheck(ctx, check)
 }

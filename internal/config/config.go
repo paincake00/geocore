@@ -3,20 +3,60 @@ package config
 import (
 	"fmt"
 
-	"github.com/kelseyhightower/envconfig"
+	"github.com/paincake00/geocore/internal/env"
 )
 
+// Config хранит настройки приложения.
 type Config struct {
-	HTTPPort      string `envconfig:"HTTP_PORT" default:"8080"`
-	DatabaseURL   string `envconfig:"DATABASE_URL" required:"true"`
-	RedisAddr     string `envconfig:"REDIS_ADDR" required:"true"`
-	MockServerURL string `envconfig:"MOCK_SERVER_URL" default:"http://localhost:9090"`
+	httpPort      string
+	databaseURL   string
+	redisAddr     string
+	mockServerURL string
+	apiKey        string
 }
 
-func Load() (*Config, error) {
-	var cfg Config
-	if err := envconfig.Process("", &cfg); err != nil {
-		return nil, fmt.Errorf("failed to process env vars: %w", err)
+// Load загружает конфигурацию из переменных окружения.
+func Load() *Config {
+	return &Config{
+		httpPort:      env.GetString("HTTP_PORT", "8080"),
+		databaseURL:   getDatabaseURL(),
+		redisAddr:     getRedisAddr(),
+		mockServerURL: env.GetString("MOCK_SERVER_URL", "http://localhost:9090"),
+		apiKey:        env.GetString("API_KEY", ""), // пустое значение по умолчанию
 	}
-	return &cfg, nil
+}
+
+// Геттеры для доступа к приватным полям конфигурации
+func (c *Config) HTTPPort() string      { return c.httpPort }
+func (c *Config) DatabaseURL() string   { return c.databaseURL }
+func (c *Config) RedisAddr() string     { return c.redisAddr }
+func (c *Config) MockServerURL() string { return c.mockServerURL }
+func (c *Config) APIKey() string        { return c.apiKey }
+
+// getDatabaseURL формирует строку подключения к PostgreSQL.
+func getDatabaseURL() string {
+	// Если DATABASE_URL задан явно (например, в docker-compose), используем его.
+	// Иначе собираем из компонентов.
+	if url := env.GetString("DATABASE_URL", ""); url != "" {
+		return url
+	}
+
+	driver := env.GetString("DB_DRIVER", "postgres")
+	user := env.GetString("POSTGRES_USER", "user")
+	password := env.GetString("POSTGRES_PASSWORD", "password")
+	host := env.GetString("POSTGRES_HOST", "localhost")
+	port := env.GetString("POSTGRES_PORT", "5432")
+	dbName := env.GetString("POSTGRES_DB", "geocore")
+
+	return fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=disable", driver, user, password, host, port, dbName)
+}
+
+// getRedisAddr формирует адрес подключения к Redis.
+func getRedisAddr() string {
+	if addr := env.GetString("REDIS_ADDR", ""); addr != "" {
+		return addr
+	}
+	host := env.GetString("REDIS_HOST", "localhost")
+	port := env.GetString("REDIS_PORT", "6379")
+	return fmt.Sprintf("%s:%s", host, port)
 }

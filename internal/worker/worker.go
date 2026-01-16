@@ -11,6 +11,7 @@ import (
 	"github.com/paincake00/geocore/internal/usecase"
 )
 
+// Worker отвечает за фоновую обработку задач (отправку вебхуков).
 type Worker struct {
 	Queue         usecase.QueueRepository
 	QueueName     string
@@ -18,15 +19,17 @@ type Worker struct {
 	MaxRetries    int
 }
 
+// New создает новый экземпляр воркера.
 func New(q usecase.QueueRepository, mockURL string) *Worker {
 	return &Worker{
 		Queue:         q,
-		QueueName:     "webhook_tasks", // same as in Service
+		QueueName:     "webhook_tasks", // та же очередь, что и в сервисе
 		MockServerURL: mockURL,
 		MaxRetries:    3,
 	}
 }
 
+// Start запускает цикл обработки задач.
 func (w *Worker) Start(ctx context.Context) {
 	log.Println("Starting background worker...")
 	for {
@@ -35,34 +38,32 @@ func (w *Worker) Start(ctx context.Context) {
 			log.Println("Worker stopped")
 			return
 		default:
-			// Fetch task
-			// Dequeue logic in RedisRepo should block for a bit (0 is infinite block).
-			// If we want graceful shutdown we need to handle that in Dequeue implementation or here.
-			// Current Dequeue implementation uses BRPop with 0 timeout (infinite).
-			// If context is canceled, client.BRPop should return error.
+			// Получаем задачу
+			// Логика Dequeue в RedisRepo блокирует выполнение (timeout 0 = бесконечно).
+			// Если контекст отменен, клиент Redis вернет ошибку.
 			payloadJSON, err := w.Queue.Dequeue(ctx, w.QueueName)
 			if err != nil {
-				// If error is due to context cancel, we exit
+				// Если ошибка из-за отмены контекста, выходим
 				if ctx.Err() != nil {
 					return
 				}
 				log.Printf("Worker dequeue error: %v", err)
-				time.Sleep(1 * time.Second) // backoff on error
+				time.Sleep(1 * time.Second) // пауза при ошибке
 				continue
 			}
 
-			// Process async
+			// Обрабатываем асинхронно
 			go w.processTask(payloadJSON)
 		}
 	}
 }
 
+// processTask обрабатывает одну задачу (отправку вебхука) с повторными попытками.
 func (w *Worker) processTask(data string) {
-	// Send to Mock Server with retry
+	// Отправка на мок-сервер с ретраями
 	log.Printf("Processing task: %s", data)
 
-	// Since we already have the JSON string, we can just send it.
-	// But let's validate or parse if needed. For now just raw forward.
+	// Здесь можно добавить валидацию JSON, но пока просто пересылаем.
 
 	for i := 0; i < w.MaxRetries; i++ {
 		err := w.sendWebhook(data)
@@ -71,11 +72,12 @@ func (w *Worker) processTask(data string) {
 			return
 		}
 		log.Printf("Failed to send webhook (attempt %d/%d): %v", i+1, w.MaxRetries, err)
-		time.Sleep(time.Duration(2*i+1) * time.Second) // Linear backoff: 1s, 3s, 5s...
+		time.Sleep(time.Duration(2*i+1) * time.Second) // Линейная задержка: 1s, 3s, 5s...
 	}
 	log.Printf("Given up on task: %s", data)
 }
 
+// sendWebhook выполняет HTTP POST запрос на мок-сервер.
 func (w *Worker) sendWebhook(data string) error {
 	req, err := http.NewRequest("POST", w.MockServerURL, bytes.NewBufferString(data))
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/paincake00/geocore/internal/entity"
 )
 
+// createIncident обрабатывает запрос на создание нового инцидента.
 func (h *Handler) createIncident(c *gin.Context) {
 	var input entity.Incident
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -15,7 +16,7 @@ func (h *Handler) createIncident(c *gin.Context) {
 		return
 	}
 
-	// Basic validation
+	// Базовая валидация
 	if input.Title == "" || input.Latitude == 0 || input.Longitude == 0 || input.RadiusMeters <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
 		return
@@ -29,6 +30,7 @@ func (h *Handler) createIncident(c *gin.Context) {
 	c.JSON(http.StatusOK, input)
 }
 
+// getIncidents возвращает список инцидентов с пагинацией.
 func (h *Handler) getIncidents(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
@@ -42,6 +44,7 @@ func (h *Handler) getIncidents(c *gin.Context) {
 	c.JSON(http.StatusOK, incidents)
 }
 
+// getIncident возвращает инцидент по ID.
 func (h *Handler) getIncident(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -58,6 +61,7 @@ func (h *Handler) getIncident(c *gin.Context) {
 	c.JSON(http.StatusOK, incident)
 }
 
+// updateIncident обновляет данные инцидента.
 func (h *Handler) updateIncident(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -80,6 +84,7 @@ func (h *Handler) updateIncident(c *gin.Context) {
 	c.JSON(http.StatusOK, input)
 }
 
+// deleteIncident удаляет инцидент.
 func (h *Handler) deleteIncident(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -95,9 +100,10 @@ func (h *Handler) deleteIncident(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
 
+// getStats возвращает статистику по инцидентам (количество уникальных пользователей в зоне).
 func (h *Handler) getStats(c *gin.Context) {
-	// STATS_TIME_WINDOW_MINUTES could be env, here hardcoded or constant
-	// Reqs said "STATS_TIME_WINDOW_MINUTES" (implies configurable), let's say 30 min default
+	// STATS_TIME_WINDOW_MINUTES может быть в env, здесь хардкод или константа
+	// В ТЗ сказано "STATS_TIME_WINDOW_MINUTES" (подразумевает настройку), возьмем дефолт 30 минут
 	window := 30
 
 	stats, err := h.IncidentService.GetStats(c.Request.Context(), window)
@@ -106,7 +112,7 @@ func (h *Handler) getStats(c *gin.Context) {
 		return
 	}
 
-	// Format response: [{"incident_id": 42, "user_count": 17}, ...]
+	// Формируем ответ: [{"incident_id": 42, "user_count": 17}, ...]
 	type StatItem struct {
 		IncidentID int `json:"incident_id"`
 		UserCount  int `json:"user_count"`

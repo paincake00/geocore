@@ -1,17 +1,18 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     environment:
-      - HTTP_PORT=8080
-      - DATABASE_URL=postgres://user:password@postgres:5432/geocore?sslmode=disable
-      - REDIS_ADDR=redis:6379
+      # If you need to override values from .env for Docker networking:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
       - MOCK_SERVER_URL=http://mock:9090
+      - API_KEY=${API_KEY}
     depends_on:
       postgres:
         condition: service_healthy

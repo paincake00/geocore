@@ -6,12 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// CheckLocationInput входные данные для проверки местоположения.
 type CheckLocationInput struct {
 	UserID    string  `json:"user_id" binding:"required"`
 	Latitude  float64 `json:"latitude" binding:"required"`
 	Longitude float64 `json:"longitude" binding:"required"`
 }
 
+// checkLocation обрабатывает запрос пользователя на проверку нахождения в опасных зонах.
 func (h *Handler) checkLocation(c *gin.Context) {
 	var input CheckLocationInput
 	if err := c.ShouldBindJSON(&input); err != nil {

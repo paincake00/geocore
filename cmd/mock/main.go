@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Event структура события, хранимая в памяти мок-сервера.
 type Event struct {
 	Body       json.RawMessage `json:"body"`
 	ReceivedAt string          `json:"received_at"`
@@ -28,6 +29,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// POST: Принимаем вебхук
 		if r.Method == http.MethodPost {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
@@ -57,6 +59,7 @@ func main() {
 			return
 		}
 
+		// GET: Отдаем список полученных вебхуков
 		if r.Method == http.MethodGet {
 			mu.Lock()
 			defer mu.Unlock()

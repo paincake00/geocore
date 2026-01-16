@@ -49,15 +49,20 @@ curl http://localhost:8080/api/v1/system/health
 
 ## API Эндпоинты
 
-### Incidents (Инциденты)
+### Incidents (Инциденты) - Требуется API Key
+Для доступа к методам управления инцидентами необходимо передавать заголовок `X-API-Key`.
+API Key (для теста): `secret-key-123`
+
 - `GET /api/v1/incidents` - Список инцидентов (params: limit, offset)
   ```bash
-  curl "http://localhost:8080/api/v1/incidents?limit=10&offset=0"
+  curl "http://localhost:8080/api/v1/incidents?limit=10&offset=0" \
+  -H "X-API-Key: secret-key-123"
   ```
 - `POST /api/v1/incidents` - Создать инцидент
   ```bash
   curl -X POST http://localhost:8080/api/v1/incidents \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: secret-key-123" \
   -d '{
     "title": "Gas Leak",
     "description": "Beware of smell",
@@ -69,13 +74,15 @@ curl http://localhost:8080/api/v1/system/health
 - `GET /api/v1/incidents/:id` - Получить инцидент
   ```bash
   # Замените 1 на реальный ID инцидента
-  curl http://localhost:8080/api/v1/incidents/1
+  curl http://localhost:8080/api/v1/incidents/1 \
+  -H "X-API-Key: secret-key-123"
   ```
 - `PUT /api/v1/incidents/:id` - Обновить инцидент
   ```bash
   # Замените 1 на реальный ID инцидента
   curl -X PUT http://localhost:8080/api/v1/incidents/1 \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: secret-key-123" \
   -d '{
     "title": "Gas Leak Updated",
     "description": "Smell gone",
@@ -87,11 +94,13 @@ curl http://localhost:8080/api/v1/system/health
 - `DELETE /api/v1/incidents/:id` - Удалить инцидент
   ```bash
   # Замените 1 на реальный ID инцидента
-  curl -X DELETE http://localhost:8080/api/v1/incidents/1
+  curl -X DELETE http://localhost:8080/api/v1/incidents/1 \
+  -H "X-API-Key: secret-key-123"
   ```
 - `GET /api/v1/incidents/stats` - Получить статистику пользователей по зоне
   ```bash
-  curl http://localhost:8080/api/v1/incidents/stats
+  curl http://localhost:8080/api/v1/incidents/stats \
+  -H "X-API-Key: secret-key-123"
   ```
 
 ### Location Check (Проверка местоположения)
