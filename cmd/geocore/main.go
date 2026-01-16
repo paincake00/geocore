@@ -48,13 +48,13 @@ func main() {
 	geoService := usecase.NewGeoService(pgRepo, pgRepo, redisRepo, redisRepo)
 
 	// 5. Запуск воркера (Background Worker)
-	w := worker.New(redisRepo, cfg.MockServerURL())
+	w := worker.New(redisRepo, cfg.WebhookURL())
 	workerCtx, workerCancel := context.WithCancel(context.Background())
 	go w.Start(workerCtx)
 
 	// 6. Инициализация HTTP-обработчика и роутера
 	// Внедряем репозитории как "Pingers" для health-check
-	handler := delivery.NewHandler(incidentService, geoService, pgRepo, redisRepo, cfg.APIKey())
+	handler := delivery.NewHandler(incidentService, geoService, pgRepo, redisRepo, cfg.APIKey(), cfg.StatsWindow())
 	router := handler.InitRoutes()
 
 	// 7. Запуск HTTP-сервера

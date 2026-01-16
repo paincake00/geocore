@@ -21,16 +21,18 @@ type Handler struct {
 	DBPinger        Pinger
 	RedisPinger     Pinger
 	APIKey          string
+	StatsWindow     int
 }
 
 // NewHandler создает новый экземпляр HTTP-обработчика.
-func NewHandler(is *usecase.IncidentService, gs *usecase.GeoService, db Pinger, rds Pinger, apiKey string) *Handler {
+func NewHandler(is *usecase.IncidentService, gs *usecase.GeoService, db Pinger, rds Pinger, apiKey string, statsWindow int) *Handler {
 	return &Handler{
 		IncidentService: is,
 		GeoService:      gs,
 		DBPinger:        db,
 		RedisPinger:     rds,
 		APIKey:          apiKey,
+		StatsWindow:     statsWindow,
 	}
 }
 

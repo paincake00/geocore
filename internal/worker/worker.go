@@ -13,19 +13,19 @@ import (
 
 // Worker отвечает за фоновую обработку задач (отправку вебхуков).
 type Worker struct {
-	Queue         usecase.QueueRepository
-	QueueName     string
-	MockServerURL string
-	MaxRetries    int
+	Queue      usecase.QueueRepository
+	QueueName  string
+	WebhookURL string
+	MaxRetries int
 }
 
 // New создает новый экземпляр воркера.
-func New(q usecase.QueueRepository, mockURL string) *Worker {
+func New(q usecase.QueueRepository, webhookURL string) *Worker {
 	return &Worker{
-		Queue:         q,
-		QueueName:     "webhook_tasks", // та же очередь, что и в сервисе
-		MockServerURL: mockURL,
-		MaxRetries:    3,
+		Queue:      q,
+		QueueName:  "webhook_tasks", // та же очередь, что и в сервисе
+		WebhookURL: webhookURL,
+		MaxRetries: 3,
 	}
 }
 
@@ -79,7 +79,7 @@ func (w *Worker) processTask(data string) {
 
 // sendWebhook выполняет HTTP POST запрос на мок-сервер.
 func (w *Worker) sendWebhook(data string) error {
-	req, err := http.NewRequest("POST", w.MockServerURL, bytes.NewBufferString(data))
+	req, err := http.NewRequest("POST", w.WebhookURL, bytes.NewBufferString(data))
 	if err != nil {
 		return err
 	}

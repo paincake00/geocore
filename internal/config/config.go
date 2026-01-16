@@ -8,30 +8,33 @@ import (
 
 // Config хранит настройки приложения.
 type Config struct {
-	httpPort      string
-	databaseURL   string
-	redisAddr     string
-	mockServerURL string
-	apiKey        string
+	httpPort    string
+	databaseURL string
+	redisAddr   string
+	webhookURL  string
+	apiKey      string
+	statsWindow int
 }
 
 // Load загружает конфигурацию из переменных окружения.
 func Load() *Config {
 	return &Config{
-		httpPort:      env.GetString("HTTP_PORT", "8080"),
-		databaseURL:   getDatabaseURL(),
-		redisAddr:     getRedisAddr(),
-		mockServerURL: env.GetString("MOCK_SERVER_URL", "http://localhost:9090"),
-		apiKey:        env.GetString("API_KEY", ""), // пустое значение по умолчанию
+		httpPort:    env.GetString("HTTP_PORT", "8080"),
+		databaseURL: getDatabaseURL(),
+		redisAddr:   getRedisAddr(),
+		webhookURL:  env.GetString("WEBHOOK_URL", "http://localhost:9090"),
+		apiKey:      env.GetString("API_KEY", ""), // пустое значение по умолчанию
+		statsWindow: env.GetInt("STATS_TIME_WINDOW_MINUTES", 30),
 	}
 }
 
 // Геттеры для доступа к приватным полям конфигурации
-func (c *Config) HTTPPort() string      { return c.httpPort }
-func (c *Config) DatabaseURL() string   { return c.databaseURL }
-func (c *Config) RedisAddr() string     { return c.redisAddr }
-func (c *Config) MockServerURL() string { return c.mockServerURL }
-func (c *Config) APIKey() string        { return c.apiKey }
+func (c *Config) HTTPPort() string    { return c.httpPort }
+func (c *Config) DatabaseURL() string { return c.databaseURL }
+func (c *Config) RedisAddr() string   { return c.redisAddr }
+func (c *Config) WebhookURL() string  { return c.webhookURL }
+func (c *Config) APIKey() string      { return c.apiKey }
+func (c *Config) StatsWindow() int    { return c.statsWindow }
 
 // getDatabaseURL формирует строку подключения к PostgreSQL.
 func getDatabaseURL() string {

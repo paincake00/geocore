@@ -102,9 +102,7 @@ func (h *Handler) deleteIncident(c *gin.Context) {
 
 // getStats возвращает статистику по инцидентам (количество уникальных пользователей в зоне).
 func (h *Handler) getStats(c *gin.Context) {
-	// STATS_TIME_WINDOW_MINUTES может быть в env, здесь хардкод или константа
-	// В ТЗ сказано "STATS_TIME_WINDOW_MINUTES" (подразумевает настройку), возьмем дефолт 30 минут
-	window := 30
+	window := h.StatsWindow
 
 	stats, err := h.IncidentService.GetStats(c.Request.Context(), window)
 	if err != nil {

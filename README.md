@@ -132,12 +132,57 @@ API Key (для теста): `secret-key-123`
    docker logs -f geocore-mock-1
    ```
 
+   ```bash
+   docker logs -f geocore-mock-1
+   ```
+
+### Тестирование через Ngrok (публичный URL)
+Для проверки доставки уведомлений через реальный интернет:
+
+1. **Добавьте токен Ngrok**:
+   Зарегистрируйтесь на [ngrok.com](https://ngrok.com), получите автотокен и добавьте его в `.env`:
+   ```env
+   NGROK_AUTHTOKEN="ваш-токен"
+   ```
+
+2. **Запустите проект**:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Получите публичный URL**:
+   Откройте веб-интерфейс Ngrok: [http://localhost:4040](http://localhost:4040). Скопируйте HTTPS URL (вида `https://xyz.ngrok-free.app`).
+
+4. **Обновите конфигурацию**:
+   Вставьте полученный URL в `.env`:
+   ```env
+   WEBHOOK_URL="https://xyz.ngrok-free.app"
+   ```
+
+5. **Примените изменения**:
+   Перезапустите приложение, чтобы оно подхватило новый адрес:
+   ```bash
+   docker-compose restart app worker
+   ```
+
+Теперь уведомления будут уходить на публичный адрес ngrok и перенаправляться на ваш локальный мок-сервер.
+
 ## Конфигурация
-Передается через переменные окружения (см. `docker-compose.yml`):
-- `HTTP_PORT`
-- `DATABASE_URL`
-- `REDIS_ADDR`
-- `MOCK_SERVER_URL`
+Настройки приложения загружаются из переменных окружения.
+
+1. **Основные переменные** берутся из файла `.env`.
+   Пример конфигурации находится в файле `.env.example`.
+   Ключевые переменные:
+   - `HTTP_PORT`
+   - `DATABASE_URL` (или компоненты подключения `POSTGRES_*`)
+   - `REDIS_ADDR` (или компоненты `REDIS_*`)
+   - `MOCK_SERVER_URL`
+   - `API_KEY`
+   - `STATS_TIME_WINDOW_MINUTES`
+
+2. **Docker Compose**:
+   При запуске через `docker-compose.yml`, переменные из `.env` передаются в контейнеры.
+   Дополнительно, `docker-compose.yml` может переопределять некоторые переменные (например, хосты сервисов `postgres`, `redis`) для корректной работы внутри сети Docker.
 
 ## Архитектура
 - **Handler**: HTTP Transport (Gin)

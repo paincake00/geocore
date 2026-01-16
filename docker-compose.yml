@@ -11,7 +11,7 @@ services:
       # If you need to override values from .env for Docker networking:
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
-      - MOCK_SERVER_URL=http://mock:9090
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://mock:9090}
       - API_KEY=${API_KEY}
     depends_on:
       postgres:
@@ -54,6 +54,16 @@ services:
       - "9090:9090"
     environment:
       - PORT=9090
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command: "http mock:9090"
+    ports:
+      - "4040:4040"
+    depends_on:
+      - mock
 
 volumes:
   postgres_data:

@@ -17,7 +17,6 @@ type RedisRepo struct {
 
 // New создает новое подключение к Redis.
 func New(addr string) (*RedisRepo, error) {
-	// В реальном приложении стоило бы добавить настройки пароля и номера БД.
 	client := redis.NewClient(&redis.Options{
 		Addr: addr,
 	})
