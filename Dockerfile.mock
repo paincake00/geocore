@@ -1,0 +1,22 @@
+FROM golang:1.25.5-alpine AS builder
+
+WORKDIR /app
+
+# We create a simple mock server inline or assume cmd/mock exists
+# For now let's assume we'll create cmd/mock/main.go
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -o mock-server cmd/mock/main.go
+
+FROM alpine:latest
+
+WORKDIR /root/
+
+COPY --from=builder /app/mock-server .
+
+EXPOSE 9090
+
+CMD ["./mock-server"]
